@@ -27,9 +27,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     mapping(uint => mapping(uint => Details)) public ticketOwners;
     uint public purchase;
-
+    uint public purchaseAfterInit;
+    uint public fundingTime;
+    uint public earningTime;
     
     uint totalTickets;
+    uint totalTicketsAfterInit;
     
     mapping(address => lastBalance) public balances;
 
@@ -37,7 +40,6 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     ICurveAddressProvider provider;
 
-    address constant daiAddress;
     IERC20Upgradeable daicontract;
 
     function initialize(address _recipient) public initializer {
@@ -52,14 +54,13 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         acceptedCoins[0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE] = true //ETH 
 
         provider = ICurveAddressProvider(0x0000000022D53366457F9d5E68Ec105046FC4383);
-        daiAddress = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-        daicontract = IERC20Upgradeable(daiAddress);
+        daicontract = IERC20Upgradeable(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     }
 
     function initFundingStage() external onlyOwner{
         stage = stages.Funding;
         lotteryId++;
-        purchase = 0;
+        fundingTime = block.timestamp + 2 days;
     }
 
 
@@ -70,8 +71,8 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(msg.value > 0, "You have not sent any ETH");
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
 
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, daiAddress, msg.value,[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
-            totalDeposit = curveDex.exchange(pool, _paymentToken, daiAddress, msg.value,(expected*99/100), address(this));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
 
             //is 10^19 and not 10^18 because is 10$ for ticket, 
             require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
@@ -79,7 +80,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             //refunding excess amount of ETH to the sender in form of DAI
             daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
             
-        }else if(_paymentMethod == daiAddress){
+        }else if(_paymentMethod == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             totalDeposit = _amountTickets*(10**19);
@@ -89,38 +90,112 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, daiAddress, _amountTickets*(10**19),[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
-            totalDeposit = curveDex.exchange(pool, _paymentToken, daiAddress, _amountTickets*(10**19),(expected*99/100), address(this));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),(expected*99/100), address(this));
 
         }
-        
-        if(balances[msg.sender].amount == 0){
-                balances[msg.sender].amount = totalDeposit;
-                balances[msg.sender].lottery = lotteryId;
-                purchase++;
-                ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
-                totalTickets += _amountTickets;
-                ticketOwners[lotteryId][purchase].lastTicket = totalTickets
-                ticketOwners[lotteryId][purchase].buyer = msg.sender;
-                 
-            } else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId){
-                purchase++;
-                ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
-                totalTickets += (balances[msg.sender].amount / (10**19)) + _amountTickets; 
-                ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
-                ticketOwners[lotteryId][purchase].buyer = msg.sender;
-                
-                balances[msg.sender].amount += totalDeposit;
-                balances[msg.sender].lottery = lotteryId;
 
-            }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery == lotteryId){
-                balances[msg.sender].amount += totalDeposit;
-                purchase++;
-                ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
-                totalTickets += _amountTickets; 
-                ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
-                ticketOwners[lotteryId][purchase].buyer = msg.sender;
-            }
+        purchase++;
+        ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
+        ticketOwners[lotteryId][purchase].buyer = msg.sender;
+
+        if(balances[msg.sender].amount == 0){
+            balances[msg.sender].amount = totalDeposit;
+            balances[msg.sender].lottery = lotteryId;
+
+            totalTickets += _amountTickets;
+                 
+        } else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId){
+            balances[msg.sender].amount += totalDeposit;
+            balances[msg.sender].lottery = lotteryId;
+
+            totalTickets += (balances[msg.sender].amount / (10**19)) + _amountTickets;
+
+        }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery == lotteryId){
+            balances[msg.sender].amount += totalDeposit;
+
+            totalTickets += _amountTickets; 
+        }
+        ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
     }
+
+    function buyTicketsWithBalance() external {
+        require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
+        purchase++;
+        balances[msg.sender].lottery = lotteryId;
+        ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
+        ticketOwners[lotteryId][purchase].buyer = msg.sender;
+        totalTickets += (balances[msg.sender].amount / (10**19));
+        ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
+    }
+
+    function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable{
+        require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId)
+        require(acceptedCoins[_paymentToken], "Not accepted type of token!");
+        uint totalDeposit;
+        if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
+            require(msg.value > 0, "You have not sent any ETH");
+            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
+
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
+
+            //is 10^19 and not 10^18 because is 10$ for ticket, 
+            require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
+
+            //refunding excess amount of ETH to the sender in form of DAI
+            daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
+            
+        }else if(_paymentMethod == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
+            require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
+            daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
+            totalDeposit = _amountTickets*(10**19);
+
+        }else {
+            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentMethod);
+            require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
+            tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
+            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),(expected*99/100), address(this));
+
+        }
+
+        purchaseAfterInit++;
+        ticketOwners[lotteryId + 1][purchaseAfterInit].firstTicket = totalTicketsAfterInit + 1;
+        ticketOwners[lotteryId + 1][purchaseAfterInit].buyer = msg.sender;
+
+        if(balances[msg.sender].amount == 0){
+            balances[msg.sender].amount = totalDeposit;
+            balances[msg.sender].lottery = lotteryId + 1;
+
+            totalTicketsAfterInit += _amountTickets;
+                 
+        } else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId){
+            balances[msg.sender].amount += totalDeposit;
+            balances[msg.sender].lottery = lotteryId + 1;
+
+            totalTicketsAfterInit += (balances[msg.sender].amount / (10**19)) + _amountTickets;
+
+        }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery > lotteryId){
+            balances[msg.sender].amount += totalDeposit;
+
+            totalTicketsAfterInit += _amountTickets; 
+        }
+        ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
+
+    }
+    
+    function buyTicketsWithBalanceAfterInit() external {
+        require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
+        purchaseAfterInit++;
+        balances[msg.sender].lottery = lotteryId + 1;
+        ticketOwners[lotteryId + 1][purchaseAfterInit].firstTicket = totalTicketsAfterInit + 1;
+        ticketOwners[lotteryId + 1][purchaseAfterInit].buyer = msg.sender;
+        totalTicketsAfterInit += (balances[msg.sender].amount / (10**19));
+        ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
+    }
+
+
 
 }

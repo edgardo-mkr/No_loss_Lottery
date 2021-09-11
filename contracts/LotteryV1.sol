@@ -5,10 +5,20 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseUpgradable.sol";
 import "./interfaces/ICurveAddressProvider.sol";
 import "./interfaces/ICurveExchange.sol";
+import "./interfaces/ILendingPoolAddressesProvider.sol";
+import "./interfaces/ILendingPool.sol";
 
-contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseUpgradable{
+
+    address public recipient;
+
+    bytes32 internal keyHash;
+    uint256 internal fee;
+    
+    uint256 public randomResult;
 
     uint public lotteryId;
     enum stages{Funding, Earning, Ended}
@@ -31,20 +41,32 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     uint public fundingTime;
     uint public earningTime;
     
-    uint totalTickets;
-    uint totalTicketsAfterInit;
+    uint public totalTickets;
+    uint public totalTicketsAfterInit;
+
+    uint public totalFunds;
+    uint public totalFundsAfterInit;
     
     mapping(address => lastBalance) public balances;
 
     mapping(address => bool) public acceptedCoins;
 
     ICurveAddressProvider provider;
+    ILendingPoolAddressesProvider aavePoolProvider;
 
     IERC20Upgradeable daicontract;
 
     function initialize(address _recipient) public initializer {
         OwnableUpgradeable.__Ownable_init();
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+        VRFConsumerBaseUpgradable.initialize(
+            0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
+            0x514910771AF9Ca656af840dff83E8264EcF986CA // LINK Token
+        );
+
+        recipient = _recipient;
+        keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
+        fee = 2 * 10 ** 18;
 
         acceptedCoins[0x6B175474E89094C44Da98b954EedeAC495271d0F] = true //DAI
         acceptedCoins[0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48] = true //USDC
@@ -54,17 +76,71 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         acceptedCoins[0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE] = true //ETH 
 
         provider = ICurveAddressProvider(0x0000000022D53366457F9d5E68Ec105046FC4383);
+        aavePoolProvider = ILendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
         daicontract = IERC20Upgradeable(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     }
 
-    function initFundingStage() external onlyOwner{
+    //modifiers
+    modifier fundingStage {
+        require(stage == stages.Funding && block.timestamp <= fundingTime, "Funding stage is over");
+        _;
+    }
+
+    modifier earningStage {
+        require(stage == stages.Earning && block.timestamp <= earningTime);
+        _;
+    }
+
+    modifier endedStage {
+        require(stage == stage.Ended);
+        _;
+    }
+
+    //functions
+    function initFundingStage() external onlyOwner endedStage{
         stage = stages.Funding;
         lotteryId++;
         fundingTime = block.timestamp + 2 days;
+        purchase = purchaseAfterInit;
+        purchaseAfterInit = 0;
+        totalTickets = totalTicketsAfterInit;
+        totalTicketsAfterInit = 0;
+        totalfunds = totalFundsAfterInit;
+        totalFundsAfterInit = 0;
     }
 
+    function initEarningStage() external onlyOwner {
+        require(stage == stages.Funding && block.timestamp > fundingTime);
+        stage = stages.Earning;
+        earningTime = block.timestamp + 5 days;
+        ILendingPool lendingPool = ILendingPool(aavePoolProvider.getLendingPool());
+        daicontract.approve(address(lendingPool), totalFunds);
+        lendingPool.deposit(0x6B175474E89094C44Da98b954EedeAC495271d0F, totalFunds, address(this), 0);
+    }
 
-    function buyTickets(address _paymentToken, uint _amountTickets) external payable {
+    function getRandomNumber() external onlyOwner returns(bytes32 requestId) {
+        require(stage == stages.Earning && block.timestamp > earningTime);
+        require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK to pay fee");
+        requestId = requestRandomness(keyHash, fee);
+    }
+
+    function chooseWinner() external onlyOwner {
+        require(stage == stages.Earning && block.timestamp > earningTime);
+        require(randomResult != 0, "Random number hasn't been retrieve yet");
+        ILendingPool lendingPool = ILendingPool(aavePoolProvider.getLendingPool());
+        uint256 totalRetrieve = lendingPool.withdraw(0x6B175474E89094C44Da98b954EedeAC495271d0F, type(uint).max, address(this));
+        for (uint i = 1; i <= purchase; i++ ){
+            if (randomResult >= ticketOwners[lotteryId][i].firstTicket && randomResult <= ticketOwners[lotteryId][i].lastTicket){
+                address winner = ticketOwners[lotteryId][i].buyer;
+                daicontract.transferFrom(address(this), winner, balances[winner].amount + ((totalRetrieve - totalFunds)*95/100));
+                daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100))
+                break;
+            }
+        }
+        stage = stages.Ended;
+    }
+
+    function buyTickets(address _paymentToken, uint _amountTickets) external payable fundingStage {
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
@@ -101,35 +177,36 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
         if(balances[msg.sender].amount == 0){
             balances[msg.sender].amount = totalDeposit;
+            totalFunds += totalDeposit;
             balances[msg.sender].lottery = lotteryId;
 
             totalTickets += _amountTickets;
                  
         } else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId){
-            balances[msg.sender].amount += totalDeposit;
             balances[msg.sender].lottery = lotteryId;
-
             totalTickets += (balances[msg.sender].amount / (10**19)) + _amountTickets;
-
+            balances[msg.sender].amount += totalDeposit;
+            totalFunds += balances[msg.sender].amount
         }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery == lotteryId){
             balances[msg.sender].amount += totalDeposit;
-
+            totalFunds += totalDeposit;
             totalTickets += _amountTickets; 
         }
         ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
     }
 
-    function buyTicketsWithBalance() external {
+    function buyTicketsWithBalance() external fundingStage{
         require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
         purchase++;
         balances[msg.sender].lottery = lotteryId;
         ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
         ticketOwners[lotteryId][purchase].buyer = msg.sender;
         totalTickets += (balances[msg.sender].amount / (10**19));
+        totalFunds += balances[msg.sender].amount;
         ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
     }
 
-    function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable{
+    function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage{
         require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId)
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
@@ -167,34 +244,45 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
         if(balances[msg.sender].amount == 0){
             balances[msg.sender].amount = totalDeposit;
+            totalFundsAfterInit += totalDeposit;
             balances[msg.sender].lottery = lotteryId + 1;
 
             totalTicketsAfterInit += _amountTickets;
                  
         } else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId){
-            balances[msg.sender].amount += totalDeposit;
+            
             balances[msg.sender].lottery = lotteryId + 1;
-
             totalTicketsAfterInit += (balances[msg.sender].amount / (10**19)) + _amountTickets;
+            balances[msg.sender].amount += totalDeposit;
+            totalFundsAfterInit += balances[msg.sender].amount;
 
         }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery > lotteryId){
             balances[msg.sender].amount += totalDeposit;
 
             totalTicketsAfterInit += _amountTickets; 
+            totalFundsAfterInit += totalDeposit;
         }
         ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
 
     }
     
-    function buyTicketsWithBalanceAfterInit() external {
+    function buyTicketsWithBalanceAfterInit() external earningStage{
         require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
         purchaseAfterInit++;
         balances[msg.sender].lottery = lotteryId + 1;
         ticketOwners[lotteryId + 1][purchaseAfterInit].firstTicket = totalTicketsAfterInit + 1;
         ticketOwners[lotteryId + 1][purchaseAfterInit].buyer = msg.sender;
         totalTicketsAfterInit += (balances[msg.sender].amount / (10**19));
+        totalFundsAfterInit += balances[msg.sender].amount;
         ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
     }
+
+
+
+    function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+    randomResult = (randomness % totalTickets) + 1;
+    }
+
 
 
 

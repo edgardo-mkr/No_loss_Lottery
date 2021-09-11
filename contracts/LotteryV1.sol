@@ -68,12 +68,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
         fee = 2 * 10 ** 18;
 
-        acceptedCoins[0x6B175474E89094C44Da98b954EedeAC495271d0F] = true //DAI
-        acceptedCoins[0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48] = true //USDC
-        acceptedCoins[0xdAC17F958D2ee523a2206206994597C13D831ec7] = true //USDT
-        acceptedCoins[0x0000000000085d4780B73119b644AE5ecd22b376] = true //TUSD
-        acceptedCoins[0x4Fabb145d64652a948d72533023f6E7A623C7C53] = true //BUSD
-        acceptedCoins[0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE] = true //ETH 
+        acceptedCoins[0x6B175474E89094C44Da98b954EedeAC495271d0F] = true; //DAI
+        acceptedCoins[0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48] = true;//USDC
+        acceptedCoins[0xdAC17F958D2ee523a2206206994597C13D831ec7] = true; //USDT
+        acceptedCoins[0x0000000000085d4780B73119b644AE5ecd22b376] = true; //TUSD
+        acceptedCoins[0x4Fabb145d64652a948d72533023f6E7A623C7C53] = true; //BUSD
+        acceptedCoins[0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE] = true; //ETH 
 
         provider = ICurveAddressProvider(0x0000000022D53366457F9d5E68Ec105046FC4383);
         aavePoolProvider = ILendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
@@ -92,7 +92,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     }
 
     modifier endedStage {
-        require(stage == stage.Ended);
+        require(stage == stages.Ended);
         _;
     }
 
@@ -105,7 +105,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         purchaseAfterInit = 0;
         totalTickets = totalTicketsAfterInit;
         totalTicketsAfterInit = 0;
-        totalfunds = totalFundsAfterInit;
+        totalFunds = totalFundsAfterInit;
         totalFundsAfterInit = 0;
     }
 
@@ -120,7 +120,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     function getRandomNumber() external onlyOwner returns(bytes32 requestId) {
         require(stage == stages.Earning && block.timestamp > earningTime);
-        require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK to pay fee");
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK to pay fee");
         requestId = requestRandomness(keyHash, fee);
     }
 
@@ -133,11 +133,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             if (randomResult >= ticketOwners[lotteryId][i].firstTicket && randomResult <= ticketOwners[lotteryId][i].lastTicket){
                 address winner = ticketOwners[lotteryId][i].buyer;
                 daicontract.transferFrom(address(this), winner, balances[winner].amount + ((totalRetrieve - totalFunds)*95/100));
-                daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100))
+                daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100));
                 break;
             }
         }
         stage = stages.Ended;
+        randomResult = 0;
     }
 
     function buyTickets(address _paymentToken, uint _amountTickets) external payable fundingStage {
@@ -156,13 +157,13 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             //refunding excess amount of ETH to the sender in form of DAI
             daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
             
-        }else if(_paymentMethod == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
+        }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             totalDeposit = _amountTickets*(10**19);
 
         }else {
-            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentMethod);
+            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
@@ -186,7 +187,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             balances[msg.sender].lottery = lotteryId;
             totalTickets += (balances[msg.sender].amount / (10**19)) + _amountTickets;
             balances[msg.sender].amount += totalDeposit;
-            totalFunds += balances[msg.sender].amount
+            totalFunds += balances[msg.sender].amount;
         }else if (balances[msg.sender].amount > 0 && balances[msg.sender].lottery == lotteryId){
             balances[msg.sender].amount += totalDeposit;
             totalFunds += totalDeposit;
@@ -207,7 +208,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     }
 
     function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage{
-        require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId)
+        require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId);
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
@@ -223,13 +224,13 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             //refunding excess amount of ETH to the sender in form of DAI
             daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
             
-        }else if(_paymentMethod == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
+        }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             totalDeposit = _amountTickets*(10**19);
 
         }else {
-            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentMethod);
+            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));

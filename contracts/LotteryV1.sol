@@ -132,7 +132,9 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         for (uint i = 1; i <= purchase; i++ ){
             if (randomResult >= ticketOwners[lotteryId][i].firstTicket && randomResult <= ticketOwners[lotteryId][i].lastTicket){
                 address winner = ticketOwners[lotteryId][i].buyer;
-                daicontract.transferFrom(address(this), winner, balances[winner].amount + ((totalRetrieve - totalFunds)*95/100));
+                uint amount = balances[winner].amount + ((totalRetrieve - totalFunds)*95/100);
+                balances[winner].amount = 0;
+                daicontract.transferFrom(address(this), winner, amount);
                 daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100));
                 break;
             }
@@ -141,7 +143,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         randomResult = 0;
     }
 
-    function buyTickets(address _paymentToken, uint _amountTickets) external payable fundingStage {
+    function buyTickets(address _paymentToken, uint _amountTickets) external payable fundingStage nonReentrant{
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
@@ -207,7 +209,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
     }
 
-    function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage{
+    function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage nonReentrant{
         require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId);
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
@@ -278,6 +280,14 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
     }
 
+    function withdrawal() external payable nonReentrant{
+        require(balances[msg.sender].amount > 0, "Balance is 0!");
+        require(balances[msg.sender].lottery < lotteryId, "you can't withdraw while participating in a lottery");
+
+        uint amount = balances[msg.sender].amount;
+        balances[msg.sender].amount = 0;
+        daicontract.transferFrom(address(this), msg.sender, amount);
+    }
 
 
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {

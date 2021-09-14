@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -78,6 +79,8 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         provider = ICurveAddressProvider(0x0000000022D53366457F9d5E68Ec105046FC4383);
         aavePoolProvider = ILendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
         daicontract = IERC20Upgradeable(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+
+        stage = stages.Ended;
     }
 
     //modifiers
@@ -196,6 +199,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             totalTickets += _amountTickets; 
         }
         ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
+
     }
 
     function buyTicketsWithBalance() external fundingStage{

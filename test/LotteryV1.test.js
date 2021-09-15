@@ -411,4 +411,158 @@ describe("LotteryV1 contract", async function(){
             
         })
     })
+
+    describe("Buying multiple sets of tickets on a lottery", function () {
+        it("Should buy 100 tickets and then 50 tickets with dai on the same lottery", async function(){
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+
+            
+
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('500.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 50);
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(buyerWithToken.address)
+
+            expect(balances.amount).to.equal(ethers.utils.parseUnits('1500.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(buyerWithToken.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(buyerWithToken.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+        it("Should buy 100 tickets and then 50 tickets with busd on the same lottery", async function(){
+            await busdContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(busdAddress, 100);
+
+            
+
+            await busdContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('500.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(busdAddress, 50);
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(buyerWithToken.address)
+
+            expect(balances.amount).to.be.closeTo(ethers.utils.parseUnits('1500.0', 18), ethers.utils.parseUnits('2.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(buyerWithToken.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(buyerWithToken.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+        it("Should buy 100 tickets and then 50 tickets with usdt on the same lottery", async function(){
+            await usdtContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(usdtAddress, 100);
+
+            
+
+            await usdtContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('500.0', 6))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(usdtAddress, 50);
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(buyerWithToken.address)
+
+            expect(balances.amount).to.be.closeTo(ethers.utils.parseUnits('1500.0', 18), ethers.utils.parseUnits('1.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(buyerWithToken.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(buyerWithToken.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+        it("Should buy 100 tickets and then 50 tickets with usdc on the same lottery", async function(){
+            await usdcContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(usdcAddress, 100);
+
+            
+
+            await usdcContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('500.0', 6))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(usdcAddress, 50);
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(buyerWithToken.address)
+
+            expect(balances.amount).to.be.closeTo(ethers.utils.parseUnits('1500.0', 18), ethers.utils.parseUnits('2.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(buyerWithToken.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(buyerWithToken.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+        it("Should buy 100 tickets and then 50 tickets with tusd on the same lottery", async function(){
+            await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(tusdHolder).buyTickets(tusdAddress, 100);
+
+            
+
+            await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('500.0', 18))
+            await hardhatLottery.connect(tusdHolder).buyTickets(tusdAddress, 50);
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(tusdHolder.address)
+
+            expect(balances.amount).to.be.closeTo(ethers.utils.parseUnits('1500.0', 18), ethers.utils.parseUnits('2.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(tusdHolder.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(tusdHolder.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+        it("Should buy 100 tickets and then 50 tickets with eth on the same lottery", async function(){
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.buyTickets(ethAddress, 50,{value: ethers.utils.parseEther("1.0")});
+            
+            let purchase = await hardhatLottery.ticketOwners(1, 1)
+            let purchase2 = await hardhatLottery.ticketOwners(1, 2)
+            let balances = await hardhatLottery.balances(owner.address)
+
+            expect(balances.amount).to.equal(ethers.utils.parseUnits('1500.0', 18))
+            expect(balances.lottery).to.equal(1)
+            expect(purchase.firstTicket).to.equal(1)
+            expect(purchase.lastTicket).to.equal(100)
+            expect(purchase.buyer).to.equal(owner.address)
+            expect(purchase2.firstTicket).to.equal(101)
+            expect(purchase2.lastTicket).to.equal(150)
+            expect(purchase2.buyer).to.equal(owner.address)
+            expect(await hardhatLottery.purchase()).to.equal(2)
+            expect(await hardhatLottery.totalTickets()).to.equal(150)
+            expect(await hardhatLottery.totalFunds()).to.equal(balances.amount)
+            expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
+        })
+    })
 })

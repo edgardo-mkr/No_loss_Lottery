@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -14,8 +13,16 @@ import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./interfaces/ILendingPool.sol";
 import "./interfaces/IUniswapV2Router.sol";
 
+/// @title No Loss Lottery
+/// @author Edgardo González
+/** @notice this contract allows user to buy tickets (at a 10$ rate per ticket) with the most popular stablecoins(DAI, USDC, USDT, TUSD, BUSD) or ETH to gain to gain the total 
+interes of the staked amount IN DAI, allowing withdrawal of the cost of the tickets at any moment after the end of the lottery (also in DAI)
+*/ 
+/// @dev
+
 contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBase{
     
+    ///@dev adding SafeERC20Upgradeable because of usdt not updated erc20 functions
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
 
@@ -27,6 +34,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     uint256 public randomResult;
 
     uint public lotteryId;
+    ///@dev Funding is the first two days to buy tickets, Earning stage is when the funds are deposited to the pool and start producing intrerest, Ended the winner is chosen 
     enum stages{Funding, Earning, Ended}
     stages stage;
 
@@ -40,10 +48,13 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         uint amount;
         uint lottery;
     }
-
+    ///@dev ticketOwners is used to keep track of the number of the lottery, number of purchases in a lottery and how many tickets were bought and by who
+    ///@dev all variables with AfterInit are for keeping track of purchases during the 5 days period of staking the funds, to be added to the next week lottery
     mapping(uint => mapping(uint => Details)) public ticketOwners;
     uint public purchase;
     uint public purchaseAfterInit;
+
+    ///@dev deadlines for buying tickets in current lottery (fundingTime) and deadline for staking the funds
     uint public fundingTime;
     uint public earningTime;
     
@@ -53,6 +64,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     uint public totalFunds;
     uint public totalFundsAfterInit;
     
+    ///@dev balances of users and the last lottery they participated in  
     mapping(address => lastBalance) public balances;
 
     mapping(address => bool) public acceptedCoins;
@@ -105,6 +117,17 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     }
 
     //functions
+
+    function addStableCoin(address _stableCoin) external onlyOwner{
+        acceptedCoins[_stableCoin] = true;
+    }
+
+    function deleteStablecoin(address _stableCoin) external onlyOwner{
+        acceptedCoins[_stableCoin] = false;
+    }
+
+    ///@notice initiating a new lottery with a 2 days period to buy tickets
+    ///@dev updating current variables with AfterInit ones 
     function initFundingStage() external onlyOwner endedStage{
         stage = stages.Funding;
         lotteryId++;
@@ -117,6 +140,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         totalFundsAfterInit = 0;
     }
 
+    ///@notice initiating staking process(funds deposited to aDAI aave pool to generate interest) for 5 days
     function initEarningStage() external onlyOwner {
         require(stage == stages.Funding && block.timestamp > fundingTime);
         stage = stages.Earning;
@@ -126,12 +150,17 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         lendingPool.deposit(0x6B175474E89094C44Da98b954EedeAC495271d0F, totalFunds, address(this), 0);
     }
 
+    ///@notice getting random number to choose the winner
+    ///@dev using chainlink VRFconsumerBase oracle to obtain random number, important!! to have link tokens deposited in the contract to pay the fee
     function getRandomNumber() external onlyOwner returns(bytes32 requestId) {
         require(stage == stages.Earning && block.timestamp > earningTime);
         require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK to pay fee");
         requestId = requestRandomness(keyHash, fee);
     }
 
+    ///@notice choosing the winner to pay the rewards and ending current lottery
+    ///@dev the chainlink oracle does not give immediately a random number, the number is receive through the fallback function fulfillRandomness so we first checked that 
+    /// randomResult has a different than 0 value
     function chooseWinner() external onlyOwner {
         require(stage == stages.Earning && block.timestamp > earningTime);
         require(randomResult != 0, "Random number hasn't been retrieve yet");
@@ -151,6 +180,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         randomResult = 0;
     }
 
+    ///@notice to buy tickets during the 2 days period (1 ticket = 10$ = 10 stableCoins)
+    ///@param _paymentToken token which the user choose to pay with 
+    ///@param _amountTickets number of tickets to buy
+    ///@dev when paying with a coin different than DAI the contract handles the swap using curve protocol 
+    ///@dev the user must first approve this contract to spends his tokens, in the case of using ETH thats not necessary but must put 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+    ///as paymentToken. the contract also refunds the user of any excess DAI tokens after the swap when using ETH 
     function buyTickets(address _paymentToken, uint _amountTickets) external payable fundingStage nonReentrant{
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
@@ -158,16 +193,16 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(msg.value > 0, "You have not sent any ETH");
             IUniswapV2Router uniSwap = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
             uint[] memory expectedAmount = new uint[](2);
-            address[] memory path = new address[](2);//stores the token contract addresses desired to convert
+            address[] memory path = new address[](2);
             path[0] = uniSwap.WETH();
             path[1] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-            expectedAmount = uniSwap.getAmountsOut(msg.value,path);//calculating minimum amount of token to receive 
+            expectedAmount = uniSwap.getAmountsOut(msg.value,path);
             expectedAmount = uniSwap.swapExactETHForTokens{value: msg.value}(expectedAmount[1],path,address(this),block.timestamp + 1);
-            //is 10^19 and not 10^18 because is 10$ for ticket, 
+             
             require((expectedAmount[1] / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
 
             totalDeposit = _amountTickets*(10**19);
-            //refunding excess amount of ETH to the sender in form of DAI
+            
             daicontract.transferFrom(address(this), msg.sender, (expectedAmount[1] - (_amountTickets*(10**19))));
             
         }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
@@ -221,6 +256,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     }
 
+    ///@dev function used only when an user has a balance acredited from a previous lottery and wants to use it to buy new tickets
     function buyTicketsWithBalance() external fundingStage{
         require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
         purchase++;
@@ -232,6 +268,9 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         ticketOwners[lotteryId][purchase].lastTicket = totalTickets;
     }
 
+    ///@param _paymentToken token which the user choose to pay with 
+    ///@param _amountTickets number of tickets to buy 
+    ///@dev function to buy tickets after the 2 days pariod have passed, this purchase is stored for the next week lottery
     function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage nonReentrant{
         require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId);
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
@@ -243,10 +282,10 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value);
             totalDeposit = curveDex.exchange{value: msg.value}(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
 
-            //is 10^19 and not 10^18 because is 10$ for ticket, 
+             
             require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
 
-            //refunding excess amount of ETH to the sender in form of DAI
+            
             daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
             
         }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
@@ -303,6 +342,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     }
     
+    ///@dev same as buyTicketsWithBalance but for the earningStage
     function buyTicketsWithBalanceAfterInit() external earningStage{
         require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
         purchaseAfterInit++;
@@ -314,6 +354,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         ticketOwners[lotteryId + 1][purchaseAfterInit].lastTicket = totalTicketsAfterInit;
     }
 
+    
     function withdrawal() external payable nonReentrant{
         require(balances[msg.sender].amount > 0, "Balance is 0!");
         require(balances[msg.sender].lottery < lotteryId, "you can't withdraw while participating in a lottery");
@@ -323,7 +364,10 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         daicontract.transferFrom(address(this), msg.sender, amount);
     }
 
-
+    ///@param requestId ID of the random number request, not use in this contract
+    ///@param randomness random number
+    ///@dev fallback function that receives the random number from the chainlink oracle 
+    ///@dev saving a number between 1 and totalTickets
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
         randomResult = (randomness % totalTickets) + 1;
     }

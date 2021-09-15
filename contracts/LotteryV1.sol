@@ -142,13 +142,11 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
                 address winner = ticketOwners[lotteryId][i].buyer;
                 uint amount = balances[winner].amount + ((totalRetrieve - totalFunds)*95/100);
                 balances[winner].amount = 0;
-                console.log("amount sent to winner: %s", amount);
                 daicontract.transferFrom(address(this), winner, amount);
                 daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100));
                 break;
             }
         }
-        console.log("totalRetrieve: %s and totalFunds: %s", totalRetrieve, totalFunds);
         stage = stages.Ended;
         randomResult = 0;
     }
@@ -171,7 +169,6 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             totalDeposit = _amountTickets*(10**19);
             //refunding excess amount of ETH to the sender in form of DAI
             daicontract.transferFrom(address(this), msg.sender, (expectedAmount[1] - (_amountTickets*(10**19))));
-            console.log("hey final");
             
         }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
@@ -183,14 +180,11 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**7), "Not enough token approve to buy tickets");
             tokenContract.safeTransferFrom(msg.sender, address(this), _amountTickets*(10**7));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-            console.log("direccion de curve exchange: %s", address(curveDex));
             (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7));
-            console.log("pool: %s and exchange esperado: %s", pool, expected);
             tokenContract.safeIncreaseAllowance(address(curveDex), _amountTickets*(10**7));
             totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7),(expected*99/100), address(this));
             
             
-            console.log("total cambiado: %s", totalDeposit);
         }else {
             IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
@@ -265,14 +259,11 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**7), "Not enough token approve to buy tickets");
             tokenContract.safeTransferFrom(msg.sender, address(this), _amountTickets*(10**7));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-            console.log("direccion de curve exchange: %s", address(curveDex));
             (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7));
-            console.log("pool: %s and exchange esperado: %s", pool, expected);
             tokenContract.safeIncreaseAllowance(address(curveDex), _amountTickets*(10**7));
             totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7),(expected*99/100), address(this));
             
             
-            console.log("total cambiado: %s", totalDeposit);
         }else {
             IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
@@ -334,7 +325,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
 
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
-        randomResult = randomness;
+        randomResult = (randomness % totalTickets) + 1;
     }
 
 

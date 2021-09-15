@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
-import "hardhat/console.sol";
 import "../interfaces/LinkTokenInterface.sol";
 import "../VRFConsumerBase.sol";
 
@@ -32,9 +31,7 @@ contract VRFCoordinatorMock {
         bytes memory resp = abi.encodeWithSelector(v.rawFulfillRandomness.selector, requestId, randomness);
         uint256 b = 206000;
         require(gasleft() >= b, "not enough gas for consumer");
-        console.log("randomness is: %s", randomness);
         (bool success,) = consumerContract.call(resp);
-        require(success, "tx failed");
     }
 
     modifier onlyLINK() {

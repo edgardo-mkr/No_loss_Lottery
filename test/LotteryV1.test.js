@@ -32,7 +32,7 @@ const usdtContract = new ethers.Contract(usdtAddress, erc20Abi, provider);
 const tusdContract = new ethers.Contract(tusdAddress, erc20Abi, provider);
 const linkContract = new ethers.Contract(linkAddress, erc20Abi, provider);
 
-
+const requestId = "0x0000000000000000000000000000000000000000000000000000000000000001"
 
 describe("LotteryV1 contract", async function(){
     
@@ -77,7 +77,8 @@ describe("LotteryV1 contract", async function(){
         [owner, recipient, addr1, ...addrs] = await ethers.getSigners();
         hardhatLottery = await upgrades.deployProxy(Lottery, [recipient.address, vrfCoordinatorMock.address]);
 
-        
+        await hardhatLottery.initFundingStage();
+        await linkContract.connect(buyerWithToken).transfer(hardhatLottery.address, ethers.utils.parseUnits('10.0', 18))
     })
 
     describe("Initialization", function() {
@@ -90,7 +91,7 @@ describe("LotteryV1 contract", async function(){
     describe("Buying tickets with each coin", function() {
         it("Should buy 100 tickets with dai", async function() {
             await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
 
@@ -107,7 +108,7 @@ describe("LotteryV1 contract", async function(){
         })
         it("Should buy 100 tickets with usdc", async function() {
             await usdcContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(buyerWithToken).buyTickets(usdcAddress, 100);
 
@@ -124,7 +125,7 @@ describe("LotteryV1 contract", async function(){
         })
         it("Should buy 100 tickets with busd", async function() {
             await busdContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(buyerWithToken).buyTickets(busdAddress, 100);
 
@@ -141,7 +142,7 @@ describe("LotteryV1 contract", async function(){
         })
         it("Should buy 100 tickets with usdt", async function() {
             await usdtContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(buyerWithToken).buyTickets(usdtAddress, 100);
 
@@ -158,7 +159,7 @@ describe("LotteryV1 contract", async function(){
         })
         it("Should buy 100 tickets with tusd", async function() {
             await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(tusdHolder).buyTickets(tusdAddress, 100);
 
@@ -174,7 +175,7 @@ describe("LotteryV1 contract", async function(){
             expect(purchase.buyer).to.equal(tusdHolder.address)
         })
         it("Should buy 100 tickets with eth", async function() {
-            await hardhatLottery.initFundingStage();
+            
 
             await hardhatLottery.connect(buyerWithToken).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("2.0")});
 
@@ -194,9 +195,7 @@ describe("LotteryV1 contract", async function(){
 
     describe("completing a lottery", function (){
         it("Should reward the right winner", async function() {
-            await hardhatLottery.initFundingStage();
-            await linkContract.connect(buyerWithToken).transfer(hardhatLottery.address, ethers.utils.parseUnits('10.0', 18))
-
+            
             await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
             await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
 
@@ -212,7 +211,7 @@ describe("LotteryV1 contract", async function(){
 
             await hardhatLottery.getRandomNumber();
 
-            await vrfCoordinatorMock.callBackWithRandomness('0x0000000000000000000000000000000000000000000000000000000000000001', '250', hardhatLottery.address)
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '250', hardhatLottery.address)
 
             let excessDai = BigInt(await daiContract.balanceOf(addr1.address))
             let depositedBalance = await hardhatLottery.balances(addr1.address)
@@ -221,14 +220,99 @@ describe("LotteryV1 contract", async function(){
             await hardhatLottery.chooseWinner()
 
             let winnerDaiBalance = BigInt(await daiContract.balanceOf(addr1.address))
-            console.log(`balance del ganador: ${winnerDaiBalance} y balance depositado inicialmente: ${depositedBalance}`)
             let feesEarn = winnerDaiBalance - depositedBalance - excessDai
 
             let recipientFees = feesEarn*BigInt(5)/BigInt(95)
 
+            let winnerOnLotteryBalance = await hardhatLottery.balances(addr1.address)
+            let ownerOnLotteryBalance = await hardhatLottery.balances(owner.address)
+            let buyerOnLotteryBalance = await hardhatLottery.balances(buyerWithToken.address)
+            
             expect(Number(feesEarn)).to.be.above(0)
             expect(await daiContract.balanceOf(recipient.address)).to.equal(recipientFees)
+            expect(winnerOnLotteryBalance.amount).to.equal(0)
+            expect(ownerOnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+            expect(buyerOnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+             
+        })
 
+        it("Should reward right winner on multiple lotteries", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '130', hardhatLottery.address)
+
+            let excessDai = BigInt(await daiContract.balanceOf(owner.address))
+            let depositedBalance = await hardhatLottery.balances(owner.address)
+            depositedBalance = BigInt(depositedBalance.amount)
+
+            await hardhatLottery.chooseWinner()
+
+            let winnerDaiBalance = BigInt(await daiContract.balanceOf(owner.address))
+            let feesEarn = winnerDaiBalance - depositedBalance - excessDai
+
+            let winnerOnLotteryBalance = await hardhatLottery.balances(owner.address)
+            let addr1OnLotteryBalance = await hardhatLottery.balances(addr1.address)
+            let buyerOnLotteryBalance = await hardhatLottery.balances(buyerWithToken.address)
+
+            expect(Number(feesEarn)).to.be.above(0)
+            expect(winnerOnLotteryBalance.amount).to.equal(0)
+            expect(addr1OnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+            expect(buyerOnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+
+            //SECOND LOTTERY
+            await hardhatLottery.initFundingStage();
+
+            expect(await hardhatLottery.lotteryId()).to.equal(2)
+            expect(await hardhatLottery.purchase()).to.equal(0)
+            expect(await hardhatLottery.totalTickets()).to.equal(0)
+            expect(await hardhatLottery.totalFunds()).to.equal(0)
+
+            //buying tickets with balances
+            await hardhatLottery.connect(buyerWithToken).buyTicketsWithBalance();
+            await hardhatLottery.connect(addr1).buyTicketsWithBalance();
+
+            //winner participating again
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '69', hardhatLottery.address)
+
+            excessDai = BigInt(await daiContract.balanceOf(buyerWithToken.address))
+            depositedBalance = await hardhatLottery.balances(buyerWithToken.address)
+            depositedBalance = BigInt(depositedBalance.amount)
+
+            await hardhatLottery.chooseWinner()
+
+            winnerDaiBalance = BigInt(await daiContract.balanceOf(buyerWithToken.address))
+            feesEarn = winnerDaiBalance - depositedBalance - excessDai
+
+            winnerOnLotteryBalance = await hardhatLottery.balances(buyerWithToken.address)
+            addr1OnLotteryBalance = await hardhatLottery.balances(addr1.address)
+            let ownerOnLotteryBalance = await hardhatLottery.balances(owner.address)
+
+            expect(Number(feesEarn)).to.be.above(0)
+            expect(winnerOnLotteryBalance.amount).to.equal(0)
+            expect(winnerOnLotteryBalance.lottery).to.equal(2)
+            expect(addr1OnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+            expect(addr1OnLotteryBalance.lottery).to.equal(2)
+            expect(ownerOnLotteryBalance.amount).to.equal(ethers.utils.parseUnits('1000.0', 18))
+            expect(ownerOnLotteryBalance.lottery).to.equal(2)
         })
     })
 })

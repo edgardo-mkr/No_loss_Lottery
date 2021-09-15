@@ -23,5 +23,8 @@ require('dotenv').config()
         runs: 200,
       },
     },
+  },
+  mocha: {
+    timeout: 500000
   }
 };

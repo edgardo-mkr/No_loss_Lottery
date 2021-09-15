@@ -6,13 +6,18 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseUpgradable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "./randomNumber/VRFConsumerBase.sol";
 import "./interfaces/ICurveAddressProvider.sol";
 import "./interfaces/ICurveExchange.sol";
 import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./interfaces/ILendingPool.sol";
+import "./interfaces/IUniswapV2Router.sol";
 
-contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseUpgradable{
+contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBase{
+    
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
 
     address public recipient;
 
@@ -57,11 +62,11 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     IERC20Upgradeable daicontract;
 
-    function initialize(address _recipient) public initializer {
+    function initialize(address _recipient, address _coordinator) public initializer {
         OwnableUpgradeable.__Ownable_init();
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-        VRFConsumerBaseUpgradable.initialize(
-            0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
+        VRFConsumerBase.init(
+            _coordinator, // VRF Coordinator
             0x514910771AF9Ca656af840dff83E8264EcF986CA // LINK Token
         );
 
@@ -137,11 +142,13 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
                 address winner = ticketOwners[lotteryId][i].buyer;
                 uint amount = balances[winner].amount + ((totalRetrieve - totalFunds)*95/100);
                 balances[winner].amount = 0;
+                console.log("amount sent to winner: %s", amount);
                 daicontract.transferFrom(address(this), winner, amount);
                 daicontract.transferFrom(address(this), recipient, ((totalRetrieve - totalFunds)*5/100));
                 break;
             }
         }
+        console.log("totalRetrieve: %s and totalFunds: %s", totalRetrieve, totalFunds);
         stage = stages.Ended;
         randomResult = 0;
     }
@@ -151,28 +158,46 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
             require(msg.value > 0, "You have not sent any ETH");
-            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
-            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
-
+            IUniswapV2Router uniSwap = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+            uint[] memory expectedAmount = new uint[](2);
+            address[] memory path = new address[](2);//stores the token contract addresses desired to convert
+            path[0] = uniSwap.WETH();
+            path[1] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+            expectedAmount = uniSwap.getAmountsOut(msg.value,path);//calculating minimum amount of token to receive 
+            expectedAmount = uniSwap.swapExactETHForTokens{value: msg.value}(expectedAmount[1],path,address(this),block.timestamp + 1);
             //is 10^19 and not 10^18 because is 10$ for ticket, 
-            require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
+            require((expectedAmount[1] / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
 
+            totalDeposit = _amountTickets*(10**19);
             //refunding excess amount of ETH to the sender in form of DAI
-            daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
+            daicontract.transferFrom(address(this), msg.sender, (expectedAmount[1] - (_amountTickets*(10**19))));
+            console.log("hey final");
             
         }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             totalDeposit = _amountTickets*(10**19);
 
+        }else if(_paymentToken == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 || _paymentToken == 0xdAC17F958D2ee523a2206206994597C13D831ec7) {
+            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
+            require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**7), "Not enough token approve to buy tickets");
+            tokenContract.safeTransferFrom(msg.sender, address(this), _amountTickets*(10**7));
+            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
+            console.log("direccion de curve exchange: %s", address(curveDex));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7));
+            console.log("pool: %s and exchange esperado: %s", pool, expected);
+            tokenContract.safeIncreaseAllowance(address(curveDex), _amountTickets*(10**7));
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7),(expected*99/100), address(this));
+            
+            
+            console.log("total cambiado: %s", totalDeposit);
         }else {
             IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19));
+            tokenContract.approve(address(curveDex), _amountTickets*(10**19));
             totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),(expected*99/100), address(this));
 
         }
@@ -221,8 +246,8 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             require(msg.value > 0, "You have not sent any ETH");
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
 
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
-            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value);
+            totalDeposit = curveDex.exchange{value: msg.value}(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
 
             //is 10^19 and not 10^18 because is 10$ for ticket, 
             require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
@@ -235,12 +260,26 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
             daicontract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             totalDeposit = _amountTickets*(10**19);
 
+        }else if(_paymentToken == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 || _paymentToken == 0xdAC17F958D2ee523a2206206994597C13D831ec7) {
+            IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
+            require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**7), "Not enough token approve to buy tickets");
+            tokenContract.safeTransferFrom(msg.sender, address(this), _amountTickets*(10**7));
+            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
+            console.log("direccion de curve exchange: %s", address(curveDex));
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7));
+            console.log("pool: %s and exchange esperado: %s", pool, expected);
+            tokenContract.safeIncreaseAllowance(address(curveDex), _amountTickets*(10**7));
+            totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**7),(expected*99/100), address(this));
+            
+            
+            console.log("total cambiado: %s", totalDeposit);
         }else {
             IERC20Upgradeable tokenContract = IERC20Upgradeable(_paymentToken);
             require(tokenContract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
             tokenContract.transferFrom(msg.sender, address(this), _amountTickets*(10**19));
             ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),[address(0),address(0),address(0),address(0),address(0),address(0),address(0),address(0)]);
+            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19));
+            tokenContract.approve(address(curveDex), _amountTickets*(10**19));
             totalDeposit = curveDex.exchange(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, _amountTickets*(10**19),(expected*99/100), address(this));
 
         }
@@ -295,7 +334,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
 
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
-    randomResult = (randomness % totalTickets) + 1;
+        randomResult = randomness;
     }
 
 

@@ -1,20 +1,20 @@
 {
   "manifestVersion": "3.2",
   "admin": {
-    "address": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
-    "txHash": "0xafa279cb2b92ebfa8b98758561c75fdf932aeae6347989cc006ae15590e946f4",
+    "address": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+    "txHash": "0xb9a9101199e929460ad917b7a7b80b3a595da9076005c15e5485c2568f890b90",
     "deployTransaction": {
-      "hash": "0xafa279cb2b92ebfa8b98758561c75fdf932aeae6347989cc006ae15590e946f4",
+      "hash": "0xb9a9101199e929460ad917b7a7b80b3a595da9076005c15e5485c2568f890b90",
       "type": 2,
       "accessList": [],
-      "blockHash": "0xcb369052bfb241e6648126bf75da679d0ba73645f5e87ab9aaa0d56b5c423edc",
-      "blockNumber": 13110419,
+      "blockHash": "0x9bf6f67a5fb9ab84de038db89ed7d45cd9ce09f6eeacc3246544748d223b7d21",
+      "blockNumber": 13110420,
       "transactionIndex": 0,
       "confirmations": 1,
       "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       "gasPrice": {
         "type": "BigNumber",
-        "hex": "0x0eddb7f5d8"
+        "hex": "0x0d2c320952"
       },
       "maxPriorityFeePerGas": {
         "type": "BigNumber",
@@ -22,7 +22,7 @@
       },
       "maxFeePerGas": {
         "type": "BigNumber",
-        "hex": "0x1d7fd521b0"
+        "hex": "0x1a1cc948a4"
       },
       "gasLimit": {
         "type": "BigNumber",
@@ -33,31 +33,106 @@
         "type": "BigNumber",
         "hex": "0x00"
       },
-      "nonce": 56,
+      "nonce": 57,
       "data": "0x608060405234801561001057600080fd5b50600080546001600160a01b031916339081178255604051909182917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a350610759806100616000396000f3fe60806040526004361061007b5760003560e01c80639623609d1161004e5780639623609d1461011157806399a88ec414610124578063f2fde38b14610144578063f3b7dead146101645761007b565b8063204e1c7a14610080578063715018a6146100bc5780637eff275e146100d35780638da5cb5b146100f3575b600080fd5b34801561008c57600080fd5b506100a061009b366004610515565b610184565b6040516001600160a01b03909116815260200160405180910390f35b3480156100c857600080fd5b506100d1610215565b005b3480156100df57600080fd5b506100d16100ee366004610554565b610292565b3480156100ff57600080fd5b506000546001600160a01b03166100a0565b6100d161011f36600461058c565b61031c565b34801561013057600080fd5b506100d161013f366004610554565b6103ad565b34801561015057600080fd5b506100d161015f366004610515565b610405565b34801561017057600080fd5b506100a061017f366004610515565b6104ef565b6000806000836001600160a01b03166040516101aa90635c60da1b60e01b815260040190565b600060405180830381855afa9150503d80600081146101e5576040519150601f19603f3d011682016040523d82523d6000602084013e6101ea565b606091505b5091509150816101f957600080fd5b8080602001905181019061020d9190610538565b949350505050565b6000546001600160a01b031633146102485760405162461bcd60e51b815260040161023f906106c0565b60405180910390fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031633146102bc5760405162461bcd60e51b815260040161023f906106c0565b6040516308f2839760e41b81526001600160a01b038281166004830152831690638f283970906024015b600060405180830381600087803b15801561030057600080fd5b505af1158015610314573d6000803e3d6000fd5b505050505050565b6000546001600160a01b031633146103465760405162461bcd60e51b815260040161023f906106c0565b60405163278f794360e11b81526001600160a01b03841690634f1ef286903490610376908690869060040161065d565b6000604051808303818588803b15801561038f57600080fd5b505af11580156103a3573d6000803e3d6000fd5b5050505050505050565b6000546001600160a01b031633146103d75760405162461bcd60e51b815260040161023f906106c0565b604051631b2ce7f360e11b81526001600160a01b038281166004830152831690633659cfe6906024016102e6565b6000546001600160a01b0316331461042f5760405162461bcd60e51b815260040161023f906106c0565b6001600160a01b0381166104945760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b606482015260840161023f565b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b6000806000836001600160a01b03166040516101aa906303e1469160e61b815260040190565b600060208284031215610526578081fd5b81356105318161070b565b9392505050565b600060208284031215610549578081fd5b81516105318161070b565b60008060408385031215610566578081fd5b82356105718161070b565b915060208301356105818161070b565b809150509250929050565b6000806000606084860312156105a0578081fd5b83356105ab8161070b565b925060208401356105bb8161070b565b9150604084013567ffffffffffffffff808211156105d7578283fd5b818601915086601f8301126105ea578283fd5b8135818111156105fc576105fc6106f5565b604051601f8201601f19908116603f01168101908382118183101715610624576106246106f5565b8160405282815289602084870101111561063c578586fd5b82602086016020830137856020848301015280955050505050509250925092565b600060018060a01b038416825260206040818401528351806040850152825b818110156106985785810183015185820160600152820161067c565b818111156106a95783606083870101525b50601f01601f191692909201606001949350505050565b6020808252818101527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604082015260600190565b634e487b7160e01b600052604160045260246000fd5b6001600160a01b038116811461072057600080fd5b5056fea2646970667358221220d849f96f3086b9f82cdcf665adb8c697ace05638da1c7c16ab2d26293717af6764736f6c63430008020033",
-      "r": "0xc29aad0ff31cb15887cd57f72232e27e5c46d6d894ee0da7f75d475868646e3a",
-      "s": "0x134f08669ec76faaec77dca99cc3bc8bd8b72ad66bb2138a7328b9899843f3cd",
+      "r": "0x7a222534e8cf16029af84afc96b765d938d133478bec15bfffdf30f489b0adf5",
+      "s": "0x3358a26bb42528c9d87793c3bac7374a74ff0f111d959850e8005661d433a6e8",
       "v": 0,
-      "creates": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+      "creates": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
       "chainId": 31337
     }
   },
   "proxies": [
     {
+      "address": "0x922D6956C99E12DFeB3224DEA977D0939758A1Fe",
+      "txHash": "0x619fdea6b92f4b6ef44cb380af3b5363630d8533e573a2e70dfa5f0184f947b6",
+      "kind": "transparent"
+    },
+    {
       "address": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
-      "txHash": "0xab13ce011c34df5ab02ecd53a3958a0fadd91eb0cb8e7c63382414a9a39b5042",
+      "txHash": "0xd722a80bd1d5e84ae57b316293106c27384c239c40cd2022f7f7962c4d7b85a5",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xFD471836031dc5108809D173A067e8486B9047A3",
+      "txHash": "0x1e3469a4667c26bd44d9d910552239437f7d51fe853693a41301f37bf0e3e6ae",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xB0D4afd8879eD9F52b28595d31B441D079B2Ca07",
+      "txHash": "0x73e8363464e9b94e815408b4e67d41649470025aa6d65630a92b5105d3c59049",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f",
+      "txHash": "0xd86e4666b18a871f0e09b961173183d0e5d5f7a1064f726c343c051a2a57d33a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x04C89607413713Ec9775E14b954286519d836FEf",
+      "txHash": "0xd798c4a4dc2ad86e748973a1b437af3ad00c85d5b9822fb7a58caa540b57ac0f",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2",
+      "txHash": "0x27000a1a12b5d7524e480b3bc46af0dd56d5bef99a60e71bce1244bd62cc5995",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x51A1ceB83B83F1985a81C295d1fF28Afef186E02",
+      "txHash": "0xbfb26872077a0a0b18debad50e55d08c390976f97de068bf5d955b80b046431e",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x0355B7B8cb128fA5692729Ab3AAa199C1753f726",
+      "txHash": "0x3eead364caf10f0dec696f7f164654c78234e1efe5b28326d1db64ea2da40ba0",
       "kind": "transparent"
     },
     {
       "address": "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
-      "txHash": "0xcd4b5789a68827c3470d24c1adbb8f5e46350227c263bde262c2aa13a958511f",
+      "txHash": "0x63fcdbf223539f80fce044ce2b86290e9fdde98d1311d1efdbe29334889822ba",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc",
+      "txHash": "0x62463af61668f12b1e7390e300792bfcec0052755a21501ebaba81009f83d27f",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x162A433068F51e18b7d13932F27e66a3f99E6890",
+      "txHash": "0xcde6be9ff303d00d8f8a9fec2dec2c28986ed8c83b09dc3dd41c4735ab16e720",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d",
+      "txHash": "0xc1ba06d99cdbdd31176831a60fa1edecf58293ba07f5250ca0c0a22b41a68fd1",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x4C4a2f8c81640e47606d3fd77B353E87Ba015584",
+      "txHash": "0x39fc61da2c1e131731b64df3b75bc214020c074145696347f8132829a3b72de6",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43",
+      "txHash": "0xd2f04e44497178b102ed5b974ec7ebe7b2ea9b8b615f63d8913553a0113042f5",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x36b58F5C1969B7b6591D752ea6F5486D069010AB",
+      "txHash": "0xc775ca5b041de29a242b8dfa398748a6702448f0dc1107b5cc797bf426c9ed4a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x202CCe504e04bEd6fC0521238dDf04Bc9E8E15aB",
+      "txHash": "0x47b1bbb39b6b86d962d6b9afbaf06c11ecbb6e92d0b295836a356c2889c88ece",
       "kind": "transparent"
     }
   ],
   "impls": {
-    "c0bf01913d3b78fe7db67763e043de7cd2b6a2c439659c9018cb0a75a8dff0f2": {
+    "5f6896ccd32276680d971fe1542fa7f8488989fc353e23098e5afb08f4b45b06": {
       "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
-      "txHash": "0x6eddd92c4365e6869c20eaed53aacb836b6ae775604c23467d902a2e4a6fa5f5",
+      "txHash": "0x3c9724d2766e6a9925e38d263c8a8bb1220f99db430d3a13de4c404676be5c3b",
       "layout": {
         "storage": [
           {
@@ -124,121 +199,121 @@
             "contract": "LotteryV1",
             "label": "recipient",
             "type": "t_address",
-            "src": "contracts/LotteryV1.sol:17"
+            "src": "contracts/LotteryV1.sol:22"
           },
           {
             "contract": "LotteryV1",
             "label": "keyHash",
             "type": "t_bytes32",
-            "src": "contracts/LotteryV1.sol:19"
+            "src": "contracts/LotteryV1.sol:24"
           },
           {
             "contract": "LotteryV1",
             "label": "fee",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:20"
+            "src": "contracts/LotteryV1.sol:25"
           },
           {
             "contract": "LotteryV1",
             "label": "randomResult",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:22"
+            "src": "contracts/LotteryV1.sol:27"
           },
           {
             "contract": "LotteryV1",
             "label": "lotteryId",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:24"
+            "src": "contracts/LotteryV1.sol:29"
           },
           {
             "contract": "LotteryV1",
             "label": "stage",
-            "type": "t_enum(stages)655",
-            "src": "contracts/LotteryV1.sol:26"
+            "type": "t_enum(stages)1130",
+            "src": "contracts/LotteryV1.sol:31"
           },
           {
             "contract": "LotteryV1",
             "label": "ticketOwners",
-            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)665_storage))",
-            "src": "contracts/LotteryV1.sol:39"
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)1140_storage))",
+            "src": "contracts/LotteryV1.sol:44"
           },
           {
             "contract": "LotteryV1",
             "label": "purchase",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:40"
+            "src": "contracts/LotteryV1.sol:45"
           },
           {
             "contract": "LotteryV1",
             "label": "purchaseAfterInit",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:41"
+            "src": "contracts/LotteryV1.sol:46"
           },
           {
             "contract": "LotteryV1",
             "label": "fundingTime",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:42"
+            "src": "contracts/LotteryV1.sol:47"
           },
           {
             "contract": "LotteryV1",
             "label": "earningTime",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:43"
+            "src": "contracts/LotteryV1.sol:48"
           },
           {
             "contract": "LotteryV1",
             "label": "totalTickets",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:45"
+            "src": "contracts/LotteryV1.sol:50"
           },
           {
             "contract": "LotteryV1",
             "label": "totalTicketsAfterInit",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:46"
+            "src": "contracts/LotteryV1.sol:51"
           },
           {
             "contract": "LotteryV1",
             "label": "totalFunds",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:48"
+            "src": "contracts/LotteryV1.sol:53"
           },
           {
             "contract": "LotteryV1",
             "label": "totalFundsAfterInit",
             "type": "t_uint256",
-            "src": "contracts/LotteryV1.sol:49"
+            "src": "contracts/LotteryV1.sol:54"
           },
           {
             "contract": "LotteryV1",
             "label": "balances",
-            "type": "t_mapping(t_address,t_struct(lastBalance)670_storage)",
-            "src": "contracts/LotteryV1.sol:51"
+            "type": "t_mapping(t_address,t_struct(lastBalance)1145_storage)",
+            "src": "contracts/LotteryV1.sol:56"
           },
           {
             "contract": "LotteryV1",
             "label": "acceptedCoins",
             "type": "t_mapping(t_address,t_bool)",
-            "src": "contracts/LotteryV1.sol:53"
+            "src": "contracts/LotteryV1.sol:58"
           },
           {
             "contract": "LotteryV1",
             "label": "provider",
-            "type": "t_contract(ICurveAddressProvider)2476",
-            "src": "contracts/LotteryV1.sol:55"
+            "type": "t_contract(ICurveAddressProvider)3136",
+            "src": "contracts/LotteryV1.sol:60"
           },
           {
             "contract": "LotteryV1",
             "label": "aavePoolProvider",
-            "type": "t_contract(ILendingPoolAddressesProvider)2546",
-            "src": "contracts/LotteryV1.sol:56"
+            "type": "t_contract(ILendingPoolAddressesProvider)3202",
+            "src": "contracts/LotteryV1.sol:61"
           },
           {
             "contract": "LotteryV1",
             "label": "daicontract",
             "type": "t_contract(IERC20Upgradeable)577",
-            "src": "contracts/LotteryV1.sol:58"
+            "src": "contracts/LotteryV1.sol:63"
           }
         ],
         "types": {
@@ -251,7 +326,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_enum(stages)655": {
+          "t_enum(stages)1130": {
             "label": "enum LotteryV1.stages",
             "members": [
               "Funding",
@@ -259,13 +334,13 @@
               "Ended"
             ]
           },
-          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)665_storage))": {
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)1140_storage))": {
             "label": "mapping(uint256 => mapping(uint256 => struct LotteryV1.Details))"
           },
-          "t_mapping(t_uint256,t_struct(Details)665_storage)": {
+          "t_mapping(t_uint256,t_struct(Details)1140_storage)": {
             "label": "mapping(uint256 => struct LotteryV1.Details)"
           },
-          "t_struct(Details)665_storage": {
+          "t_struct(Details)1140_storage": {
             "label": "struct LotteryV1.Details",
             "members": [
               {
@@ -282,10 +357,10 @@
               }
             ]
           },
-          "t_mapping(t_address,t_struct(lastBalance)670_storage)": {
+          "t_mapping(t_address,t_struct(lastBalance)1145_storage)": {
             "label": "mapping(address => struct LotteryV1.lastBalance)"
           },
-          "t_struct(lastBalance)670_storage": {
+          "t_struct(lastBalance)1145_storage": {
             "label": "struct LotteryV1.lastBalance",
             "members": [
               {
@@ -304,16 +379,289 @@
           "t_bool": {
             "label": "bool"
           },
-          "t_contract(ICurveAddressProvider)2476": {
+          "t_contract(ICurveAddressProvider)3136": {
             "label": "contract ICurveAddressProvider"
           },
-          "t_contract(ILendingPoolAddressesProvider)2546": {
+          "t_contract(ILendingPoolAddressesProvider)3202": {
             "label": "contract ILendingPoolAddressesProvider"
           },
           "t_contract(IERC20Upgradeable)577": {
             "label": "contract IERC20Upgradeable"
           },
           "t_contract(LinkTokenInterface)270": {
+            "label": "contract LinkTokenInterface"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "33355676cc3f5b76a472d512635e9652b5d967a0f043e88249a184d45cca41e1": {
+      "address": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+      "txHash": "0x2a709e8ec23368cc404ec23159cdc458d03b804230e6a28a4f3845194fc03b1e",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
+          },
+          {
+            "contract": "VRFConsumerBase",
+            "label": "LINK",
+            "type": "t_contract(LinkTokenInterface)3255",
+            "src": "contracts/randomNumber/VRFConsumerBase.sol:178"
+          },
+          {
+            "contract": "VRFConsumerBase",
+            "label": "vrfCoordinator",
+            "type": "t_address",
+            "src": "contracts/randomNumber/VRFConsumerBase.sol:179"
+          },
+          {
+            "contract": "VRFConsumerBase",
+            "label": "nonces",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/randomNumber/VRFConsumerBase.sol:184"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "recipient",
+            "type": "t_address",
+            "src": "contracts/LotteryV1.sol:22"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "keyHash",
+            "type": "t_bytes32",
+            "src": "contracts/LotteryV1.sol:24"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "fee",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:25"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "randomResult",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:27"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "lotteryId",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:29"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "stage",
+            "type": "t_enum(stages)859",
+            "src": "contracts/LotteryV1.sol:31"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "ticketOwners",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)869_storage))",
+            "src": "contracts/LotteryV1.sol:44"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "purchase",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:45"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "purchaseAfterInit",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:46"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "fundingTime",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:47"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "earningTime",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:48"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "totalTickets",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:50"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "totalTicketsAfterInit",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:51"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "totalFunds",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:53"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "totalFundsAfterInit",
+            "type": "t_uint256",
+            "src": "contracts/LotteryV1.sol:54"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "balances",
+            "type": "t_mapping(t_address,t_struct(lastBalance)874_storage)",
+            "src": "contracts/LotteryV1.sol:56"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "acceptedCoins",
+            "type": "t_mapping(t_address,t_bool)",
+            "src": "contracts/LotteryV1.sol:58"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "provider",
+            "type": "t_contract(ICurveAddressProvider)2879",
+            "src": "contracts/LotteryV1.sol:60"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "aavePoolProvider",
+            "type": "t_contract(ILendingPoolAddressesProvider)2945",
+            "src": "contracts/LotteryV1.sol:61"
+          },
+          {
+            "contract": "LotteryV1",
+            "label": "daicontract",
+            "type": "t_contract(IERC20Upgradeable)306",
+            "src": "contracts/LotteryV1.sol:63"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_enum(stages)859": {
+            "label": "enum LotteryV1.stages",
+            "members": [
+              "Funding",
+              "Earning",
+              "Ended"
+            ]
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(Details)869_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => struct LotteryV1.Details))"
+          },
+          "t_mapping(t_uint256,t_struct(Details)869_storage)": {
+            "label": "mapping(uint256 => struct LotteryV1.Details)"
+          },
+          "t_struct(Details)869_storage": {
+            "label": "struct LotteryV1.Details",
+            "members": [
+              {
+                "label": "firstTicket",
+                "type": "t_uint256"
+              },
+              {
+                "label": "lastTicket",
+                "type": "t_uint256"
+              },
+              {
+                "label": "buyer",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_struct(lastBalance)874_storage)": {
+            "label": "mapping(address => struct LotteryV1.lastBalance)"
+          },
+          "t_struct(lastBalance)874_storage": {
+            "label": "struct LotteryV1.lastBalance",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "lottery",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_contract(ICurveAddressProvider)2879": {
+            "label": "contract ICurveAddressProvider"
+          },
+          "t_contract(ILendingPoolAddressesProvider)2945": {
+            "label": "contract ILendingPoolAddressesProvider"
+          },
+          "t_contract(IERC20Upgradeable)306": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_contract(LinkTokenInterface)3255": {
             "label": "contract LinkTokenInterface"
           },
           "t_mapping(t_bytes32,t_uint256)": {

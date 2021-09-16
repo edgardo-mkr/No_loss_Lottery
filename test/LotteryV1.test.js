@@ -899,4 +899,17 @@ describe("LotteryV1 contract", async function(){
             .to.be.revertedWith("Not enough token approve to buy tickets")
         })
     })
+    describe("Calling buyTicket functions at wrong times", function() {
+        it("Should revert when calling buytickets function after Funding stage", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")}))
+            .to.be.revertedWith("This is not Funding stage")
+        })
+        it("Should revert when calling buyticketsAfterInit function on a stage different than Earning stage", async function() {
+            await expect(hardhatLottery.connect(addr1).buyTicketsAfterInit(ethAddress, 100,{value: ethers.utils.parseEther("1.0")}))
+            .to.be.revertedWith("This is not Earning stage")
+        })
+    })
 })

@@ -102,12 +102,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     //modifiers
     modifier fundingStage {
-        require(stage == stages.Funding && block.timestamp <= fundingTime, "Funding stage is over");
+        require(stage == stages.Funding && block.timestamp <= fundingTime, "This is not Funding stage");
         _;
     }
 
     modifier earningStage {
-        require(stage == stages.Earning && block.timestamp <= earningTime, "Earning stage is over");
+        require(stage == stages.Earning && block.timestamp <= earningTime, "This is not Earning stage");
         _;
     }
 

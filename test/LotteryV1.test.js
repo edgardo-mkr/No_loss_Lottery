@@ -801,4 +801,16 @@ describe("LotteryV1 contract", async function(){
             await expect(hardhatLottery.chooseWinner()).to.be.revertedWith("Random number hasn't been retrieve yet")
         })
     })
+    describe("Buying with not accepted coins", function() {
+        it("Should revert when calling buyTickets with a non accepted coins", async function() {
+            await expect(hardhatLottery.buyTickets(linkAddress, 100)).to.be.revertedWith("Not accepted type of token!")
+        })
+        it("Should revert when calling buyTicketsAfterInit with a non accepted coins", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.buyTicketsAfterInit(linkAddress, 100)).to.be.revertedWith("Not accepted type of token!")
+        })
+    })
+    
 })

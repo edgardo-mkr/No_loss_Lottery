@@ -107,12 +107,12 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     }
 
     modifier earningStage {
-        require(stage == stages.Earning && block.timestamp <= earningTime);
+        require(stage == stages.Earning && block.timestamp <= earningTime, "Earning stage is over");
         _;
     }
 
     modifier endedStage {
-        require(stage == stages.Ended);
+        require(stage == stages.Ended, "Ended stage is over");
         _;
     }
 
@@ -142,7 +142,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     ///@notice initiating staking process(funds deposited to aDAI aave pool to generate interest) for 5 days
     function initEarningStage() external onlyOwner {
-        require(stage == stages.Funding && block.timestamp > fundingTime);
+        require(stage == stages.Funding && block.timestamp > fundingTime, "This function can not be called at this moment");
         stage = stages.Earning;
         earningTime = block.timestamp + 5 days;
         ILendingPool lendingPool = ILendingPool(aavePoolProvider.getLendingPool());
@@ -153,7 +153,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     ///@notice getting random number to choose the winner
     ///@dev using chainlink VRFconsumerBase oracle to obtain random number, important!! to have link tokens deposited in the contract to pay the fee
     function getRandomNumber() external onlyOwner returns(bytes32 requestId) {
-        require(stage == stages.Earning && block.timestamp > earningTime);
+        require(stage == stages.Earning && block.timestamp > earningTime, "This function can not be called at this moment");
         require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK to pay fee");
         requestId = requestRandomness(keyHash, fee);
     }
@@ -162,7 +162,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     ///@dev the chainlink oracle does not give immediately a random number, the number is receive through the fallback function fulfillRandomness so we first checked that 
     /// randomResult has a different than 0 value
     function chooseWinner() external onlyOwner {
-        require(stage == stages.Earning && block.timestamp > earningTime);
+        require(stage == stages.Earning && block.timestamp > earningTime, "This function can not be called at this moment");
         require(randomResult != 0, "Random number hasn't been retrieve yet");
         ILendingPool lendingPool = ILendingPool(aavePoolProvider.getLendingPool());
         uint256 totalRetrieve = lendingPool.withdraw(0x6B175474E89094C44Da98b954EedeAC495271d0F, type(uint).max, address(this));
@@ -273,7 +273,7 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     ///@param _amountTickets number of tickets to buy 
     ///@dev function to buy tickets after the 2 days pariod have passed, this purchase is stored for the next week lottery
     function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage nonReentrant{
-        require(balances[msg.sender].amount == 0 || (balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId));
+        require(balances[msg.sender].amount == 0 || (balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId), "You're already participating in the current lottery");
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){

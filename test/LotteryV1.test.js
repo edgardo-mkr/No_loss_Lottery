@@ -745,4 +745,60 @@ describe("LotteryV1 contract", async function(){
             await expect(hardhatLottery.buyTicketsWithBalanceAfterInit()).to.be.revertedWith("Your balance was already spent on a lottery")
         })
     })
+
+    describe("Stage altering functions", function() {
+        it("Should revert when not owner calls initFundingStage", async function (){
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '50', hardhatLottery.address)
+            await hardhatLottery.chooseWinner()
+
+            await expect(hardhatLottery.connect(addr1).initFundingStage()).to.be.revertedWith("Ownable: caller is not the owner")
+
+        })
+        it("Should revert when not owner calls initEarningStage", async function (){
+            await time.increase(time.duration.days(2));
+            await expect(hardhatLottery.connect(addr1).initEarningStage()).to.be.revertedWith("Ownable: caller is not the owner")
+        })
+        it("Should revert when not owner calls chooseWinner", async function (){
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await time.increase(time.duration.days(5));
+
+            await expect(hardhatLottery.connect(addr1).chooseWinner()).to.be.revertedWith("Ownable: caller is not the owner")
+        })
+        it("Should revert when initFundingStage is called from a stage different that Ended", async function() {
+            await expect(hardhatLottery.initFundingStage()).to.be.revertedWith("Ended stage is over")
+        })
+        it("Should revert when initEarningStage is called from a stage different that Funding", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.initEarningStage()).to.be.revertedWith("This function can not be called at this moment")
+        })
+        it("Should revert when chooseWinner is called from a stage different that Earning", async function() {
+            await expect(hardhatLottery.chooseWinner()).to.be.revertedWith("This function can not be called at this moment")
+        })
+        it("Should revert when initEarningStage is called and the deadline has not been met", async function() {
+            await expect(hardhatLottery.initEarningStage()).to.be.revertedWith("This function can not be called at this moment")
+        })
+        it("Should revert when chooseWinner is called and the deadline has not been met", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.chooseWinner()).to.be.revertedWith("This function can not be called at this moment")
+        })
+        it("Should revert when calling chooseWinner without getting a random number", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await time.increase(time.duration.days(5));
+            await expect(hardhatLottery.chooseWinner()).to.be.revertedWith("Random number hasn't been retrieve yet")
+        })
+    })
 })

@@ -91,8 +91,6 @@ describe("LotteryV1 contract", async function(){
     describe("Buying tickets with each coin", function() {
         it("Should buy 100 tickets with dai", async function() {
             await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
-            
-
             await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
 
             let purchase = await hardhatLottery.ticketOwners(1, 1)
@@ -812,5 +810,93 @@ describe("LotteryV1 contract", async function(){
             await expect(hardhatLottery.buyTicketsAfterInit(linkAddress, 100)).to.be.revertedWith("Not accepted type of token!")
         })
     })
-    
+    describe("Buying tickets for current and next week lottery", function() {
+        it("Should revert when buying tickets for current and next week lottery", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.connect(addr1).buyTicketsAfterInit(ethAddress, 100,{value: ethers.utils.parseEther("1.0")}))
+            .to.be.revertedWith("You're already participating in the current lottery")
+        })
+    })
+    describe("Not approving or sending enough amount of coins", function() {
+        it("Should revert when not sending enough ETH", async function() {
+            await expect(hardhatLottery.connect(addr1).buyTickets(ethAddress, 400,{value: ethers.utils.parseEther("1.0")}))
+            .to.be.revertedWith("Not enough ETH sent to buy the tickets")
+        })
+        it("Should revert when not approving enough DAI", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough BUSD", async function() {
+            await busdContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTickets(busdAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough USDC", async function() {
+            await usdcContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTickets(usdcAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough USDT", async function() {
+            await usdtContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTickets(usdtAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough TUSD", async function() {
+            await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(tusdHolder).buyTickets(tusdAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+    })
+    describe("Not approving or sending enough amount of coins AfterInit", function() {
+        it("Should revert when not sending enough ETH", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.connect(addr1).buyTicketsAfterInit(ethAddress, 400,{value: ethers.utils.parseEther("1.0")}))
+            .to.be.revertedWith("Not enough ETH sent to buy the tickets")
+        })
+        it("Should revert when not approving enough DAI", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTicketsAfterInit(daiAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough BUSD", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await busdContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTicketsAfterInit(busdAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough USDC", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await usdcContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTicketsAfterInit(usdcAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough USDT", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await usdtContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 6))
+            await expect(hardhatLottery.connect(buyerWithToken).buyTicketsAfterInit(usdtAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+        it("Should revert when not approving enough TUSD", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await expect(hardhatLottery.connect(tusdHolder).buyTicketsAfterInit(tusdAddress, 200))
+            .to.be.revertedWith("Not enough token approve to buy tickets")
+        })
+    })
 })

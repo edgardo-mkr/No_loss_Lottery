@@ -565,4 +565,184 @@ describe("LotteryV1 contract", async function(){
             expect(await daiContract.balanceOf(hardhatLottery.address)).to.equal(balances.amount)
         })
     })
+
+    describe("withdrawal", function() {
+        it("should allow to withdraw after the lottery ends", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '130', hardhatLottery.address)
+            await hardhatLottery.chooseWinner()
+
+            await hardhatLottery.initFundingStage();
+
+            let buyerDaiBalance = await daiContract.balanceOf(buyerWithToken.address)
+            let addr1DaiBalance = await daiContract.balanceOf(addr1.address)
+
+            let buyerLotteryBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let addr1LotteryBalance = await hardhatLottery.balances(addr1.address)
+
+            await hardhatLottery.connect(buyerWithToken).withdrawal()
+            await hardhatLottery.connect(addr1).withdrawal()
+            
+            let newBuyerDaiBalance = await daiContract.balanceOf(buyerWithToken.address)
+            let newAddr1DaiBalance = await daiContract.balanceOf(addr1.address)
+
+            let newBuyerLotteryBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let newAddr1LotteryBalance = await hardhatLottery.balances(addr1.address)
+
+            expect(newBuyerLotteryBalance.amount).to.equal(0)
+            expect(newAddr1LotteryBalance.amount).to.equal(0)
+            expect(newBuyerDaiBalance).to.equal(BigInt(buyerDaiBalance)+BigInt(buyerLotteryBalance.amount))
+            expect(newAddr1DaiBalance).to.equal(BigInt(addr1DaiBalance)+BigInt(addr1LotteryBalance.amount)) 
+        })
+
+        it("should revert when user is participating in current lottery", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            await expect(hardhatLottery.connect(buyerWithToken).withdrawal()).to.be.revertedWith("you can't withdraw while participating in a lottery")
+            await expect(hardhatLottery.withdrawal()).to.be.revertedWith("you can't withdraw while participating in a lottery")
+            await expect(hardhatLottery.connect(addr1).withdrawal()).to.be.revertedWith("you can't withdraw while participating in a lottery")
+        })
+
+        it("Should revert when user is participating for next week lottery", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await tusdContract.connect(tusdHolder).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(tusdHolder).buyTicketsAfterInit(tusdAddress, 100);
+
+            await expect(hardhatLottery.connect(tusdHolder).withdrawal()).to.be.revertedWith("you can't withdraw while participating in a lottery")
+        })
+    })
+
+    describe("Buying tickets with balance stored in lottery", function() {
+        it("Should allow to buy ticket for a new lottery", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            let buyerBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let addr1Balance = await hardhatLottery.balances(addr1.address)
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '130', hardhatLottery.address)
+            await hardhatLottery.chooseWinner()
+
+            await hardhatLottery.initFundingStage();
+
+            await hardhatLottery.connect(buyerWithToken).buyTicketsWithBalance()
+            await hardhatLottery.connect(addr1).buyTicketsWithBalance()
+
+            let buyerTickets = await hardhatLottery.connect(buyerWithToken).ticketOwners(2,1)
+            let addr1Tickets = await hardhatLottery.connect(addr1).ticketOwners(2,2)
+            let newBuyerBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let newAddr1Balance = await hardhatLottery.balances(addr1.address)
+
+            expect(buyerTickets.firstTicket).to.equal(1)
+            expect(buyerTickets.lastTicket).to.equal(100)
+            expect(buyerTickets.buyer).to.equal(buyerWithToken.address)
+            expect(addr1Tickets.firstTicket).to.equal(101)
+            expect(addr1Tickets.lastTicket).to.equal(200)
+            expect(addr1Tickets.buyer).to.equal(addr1.address)
+            expect(newBuyerBalance.lottery).to.equal(2)
+            expect(newAddr1Balance.lottery).to.equal(2)
+            expect(newBuyerBalance.amount).to.equal(buyerBalance.amount)
+            expect(newAddr1Balance.amount).to.equal(addr1Balance.amount)
+
+        })
+        it("Should allow to buy ticket for next week lottery", async function() {
+            await daiContract.connect(buyerWithToken).approve(hardhatLottery.address, ethers.utils.parseUnits('1000.0', 18))
+            await hardhatLottery.connect(buyerWithToken).buyTickets(daiAddress, 100);
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+
+            let buyerBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let addr1Balance = await hardhatLottery.balances(addr1.address)
+
+            await time.increase(time.duration.days(2));
+
+            await hardhatLottery.initEarningStage()
+
+            await time.increase(time.duration.days(5));
+
+            await hardhatLottery.getRandomNumber();
+            await vrfCoordinatorMock.callBackWithRandomness(requestId, '130', hardhatLottery.address)
+            await hardhatLottery.chooseWinner()
+
+            await hardhatLottery.initFundingStage();
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+           
+            await time.increase(time.duration.days(2));
+           
+            await hardhatLottery.initEarningStage()
+           
+            await hardhatLottery.connect(buyerWithToken).buyTicketsWithBalanceAfterInit()
+            await hardhatLottery.connect(addr1).buyTicketsWithBalanceAfterInit()
+
+            
+
+            let buyerTickets = await hardhatLottery.connect(buyerWithToken).ticketOwners(3,1)
+            let addr1Tickets = await hardhatLottery.connect(addr1).ticketOwners(3,2)
+            let newBuyerBalance = await hardhatLottery.balances(buyerWithToken.address)
+            let newAddr1Balance = await hardhatLottery.balances(addr1.address)
+
+            expect(buyerTickets.firstTicket).to.equal(1)
+            expect(buyerTickets.lastTicket).to.equal(100)
+            expect(buyerTickets.buyer).to.equal(buyerWithToken.address)
+            expect(addr1Tickets.firstTicket).to.equal(101)
+            expect(addr1Tickets.lastTicket).to.equal(200)
+            expect(addr1Tickets.buyer).to.equal(addr1.address)
+            expect(newBuyerBalance.lottery).to.equal(3)
+            expect(newAddr1Balance.lottery).to.equal(3)
+            expect(newBuyerBalance.amount).to.equal(buyerBalance.amount)
+            expect(newAddr1Balance.amount).to.equal(addr1Balance.amount)
+
+        })
+        it("Should revert when buying with zero balance in current lottery", async function() {
+            await expect(hardhatLottery.buyTicketsWithBalance()).to.be.revertedWith("Balance is zero")
+        })
+        it("Should revert when buying with zero balance for next week lottery", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await expect(hardhatLottery.buyTicketsWithBalanceAfterInit()).to.be.revertedWith("Balance is zero")
+        })
+        it("Should revert when user is participating in current lottery", async function() {
+            await hardhatLottery.buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await expect(hardhatLottery.buyTicketsWithBalance()).to.be.revertedWith("Your balance was already spent on a lottery")
+        })
+        it("Should revert when user is participating for the next week lottery", async function() {
+            await hardhatLottery.connect(addr1).buyTickets(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await time.increase(time.duration.days(2));
+            await hardhatLottery.initEarningStage()
+            await hardhatLottery.buyTicketsAfterInit(ethAddress, 100,{value: ethers.utils.parseEther("1.0")});
+            await expect(hardhatLottery.buyTicketsWithBalanceAfterInit()).to.be.revertedWith("Your balance was already spent on a lottery")
+        })
+    })
 })

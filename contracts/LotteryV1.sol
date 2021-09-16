@@ -258,7 +258,8 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
 
     ///@dev function used only when an user has a balance acredited from a previous lottery and wants to use it to buy new tickets
     function buyTicketsWithBalance() external fundingStage{
-        require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
+        require(balances[msg.sender].amount > 0, "Balance is zero");
+        require(balances[msg.sender].lottery < lotteryId, "Your balance was already spent on a lottery");
         purchase++;
         balances[msg.sender].lottery = lotteryId;
         ticketOwners[lotteryId][purchase].firstTicket = totalTickets + 1;
@@ -272,21 +273,24 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     ///@param _amountTickets number of tickets to buy 
     ///@dev function to buy tickets after the 2 days pariod have passed, this purchase is stored for the next week lottery
     function buyTicketsAfterInit(address _paymentToken, uint _amountTickets) external payable earningStage nonReentrant{
-        require(balances[msg.sender].amount == 0 || balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId);
+        require(balances[msg.sender].amount == 0 || (balances[msg.sender].amount > 0 && balances[msg.sender].lottery != lotteryId));
         require(acceptedCoins[_paymentToken], "Not accepted type of token!");
         uint totalDeposit;
         if(_paymentToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE){
             require(msg.value > 0, "You have not sent any ETH");
-            ICurveExchange curveDex = ICurveExchange(provider.get_address(2));
-
-            (address pool, uint256 expected) = curveDex.get_best_rate(_paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value);
-            totalDeposit = curveDex.exchange{value: msg.value}(pool, _paymentToken, 0x6B175474E89094C44Da98b954EedeAC495271d0F, msg.value,(expected*99/100), address(this));
-
+            IUniswapV2Router uniSwap = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+            uint[] memory expectedAmount = new uint[](2);
+            address[] memory path = new address[](2);
+            path[0] = uniSwap.WETH();
+            path[1] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+            expectedAmount = uniSwap.getAmountsOut(msg.value,path);
+            expectedAmount = uniSwap.swapExactETHForTokens{value: msg.value}(expectedAmount[1],path,address(this),block.timestamp + 1);
              
-            require((totalDeposit / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
+            require((expectedAmount[1] / (10**19)) >= _amountTickets, "Not enough ETH sent to buy the tickets");
 
+            totalDeposit = _amountTickets*(10**19);
             
-            daicontract.transferFrom(address(this), msg.sender, (totalDeposit - (_amountTickets*(10**19))));
+            daicontract.transferFrom(address(this), msg.sender, (expectedAmount[1] - (_amountTickets*(10**19))));
             
         }else if(_paymentToken == 0x6B175474E89094C44Da98b954EedeAC495271d0F){
             require(daicontract.allowance(msg.sender, address(this)) >= _amountTickets*(10**19), "Not enough token approve to buy tickets");
@@ -344,7 +348,8 @@ contract LotteryV1 is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradea
     
     ///@dev same as buyTicketsWithBalance but for the earningStage
     function buyTicketsWithBalanceAfterInit() external earningStage{
-        require(balances[msg.sender].amount > 0 && balances[msg.sender].lottery < lotteryId);
+        require(balances[msg.sender].amount > 0, "Balance is zero");
+        require(balances[msg.sender].lottery < lotteryId, "Your balance was already spent on a lottery");
         purchaseAfterInit++;
         balances[msg.sender].lottery = lotteryId + 1;
         ticketOwners[lotteryId + 1][purchaseAfterInit].firstTicket = totalTicketsAfterInit + 1;
